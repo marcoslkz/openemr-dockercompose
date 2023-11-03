@@ -5,23 +5,37 @@
 version: '3.8'
   
 networks:
+  db:
   proxy_default:
     external: true
 
 services:
   mysql:
+    container_name: mysql
     restart: always
     image: mariadb:10.11
     command: ['mysqld','--character-set-server=utf8mb4']
-    volumes:
-    - db-data:/var/lib/mysql
     environment:
       TZ: ${TZ}
-      MYSQL_ROOT_PASSWORD: 
-      
+      MYSQL_ROOT_PASSWORD:  
+      MYSQL_DATABASE: ${SITE_PATH}
+      MYSQL_USER: ${SITE_PATH}
+      MYSQL_PASSWORD: ${MYSQL_PASS}
+    networks:
+      - db  
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   openemr:
     restart: always
-    image: openemr/openemr:7.0.1
+    container_name: openemr
+    #image: openemr/openemr:7.0.1
+    image: openemr/openemr:latest
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy_default
@@ -30,15 +44,19 @@ services:
       - traefik.frontend.entryPoints=http,https
       - traefik.http.routers.${SITE_PATH}.rule=Host(`${DOMAIN_NAME}`)
     networks:
+      - db
       - proxy_default
     volumes:
     - log-data:/var/log
     - site-data:/var/www/localhost/htdocs/openemr/sites
     environment:
       TZ: ${TZ}
+      DOMAIN_NAME:
+      SITE_PATH:
       MYSQL_HOST: mysql
-      MYSQL_ROOT_PASSWORD: 
-      MYSQL_USER: openemr
+      MYSQL_ROOT_PASSWORD:
+      MYSQL_DATABASE: ${SITE_PATH}
+      MYSQL_USER: ${SITE_PATH}
       MYSQL_PASS: 
       OE_USER: 
       OE_PASS: 
