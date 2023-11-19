@@ -49,6 +49,8 @@ services:
     volumes:
     - log-data:/var/log
     - site-data:/var/www/localhost/htdocs/openemr/sites
+    - ignored:/etc/ssl
+    - ignored:/etc/letsencrypt
     environment:
       TZ: ${TZ}
       DOMAIN_NAME:
@@ -65,6 +67,7 @@ services:
         condition: service_healthy
     
 volumes:
+   ignored: # traefik
    log-data:
       driver_opts:
             type: none
